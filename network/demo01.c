@@ -48,6 +48,10 @@ int main(int argc, char* argv[])
 	skad.sin_addr.s_addr = inet_addr("127.0.0.1");
 	skad.sin_port = htons((in_port_t)atoi(argv[1]));
 
+	// 这个选项的用处：
+	// 当服务端和客户端建立连接然后服务端主动断开连接，这时服务端重启（使用相同地址和端口）就会bind失败，那个被关闭的socket不能立即用
+	int opt = 1;
+	setsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR, (const char *)&opt, sizeof(opt));
 
 	if(bind(listen_sock, (struct sockaddr *)&skad, sizeof(skad)) == -1)
 	{
