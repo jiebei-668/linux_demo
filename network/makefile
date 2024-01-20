@@ -5,3 +5,4 @@ demo02: demo02.c
 	gcc -g -o demo02 demo02.c
 clean:
 	rm -rf bin/*
+	rm -rf demo01 demo02

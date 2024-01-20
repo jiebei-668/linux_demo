@@ -58,8 +58,10 @@ int main(int argc, char* argv[])
 	{
 		memset(buf, 0, sizeof(buf));
 		scanf("%[^\n]%*c", buf);
-		write(sockfd, buf, 512);
-		read(sockfd, buf, 512);
+		// write(sockfd, buf, 512);
+		send(sockfd, buf, 512, 0);
+		// read(sockfd, buf, 512);
+		recv(sockfd, buf, 512, 0);
 		printf("recv: ===%s===\n", buf);
 	}
 	close(sockfd);

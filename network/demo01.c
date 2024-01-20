@@ -70,13 +70,16 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 	char buf[512];
-	while(1)
+	memset(buf, 0, sizeof(buf));
+	int len;
+	// while((len = read(client_sock, buf, 512)) != 0)
+	while((len = recv(client_sock, buf, 512, 0)) != 0)
 	{
-		memset(buf, 0, sizeof(buf));
-		read(client_sock, buf, 512);
 		printf("recv: ==%s==\n", buf);
-		write(client_sock, buf, 512);
+		// write(client_sock, buf, len);
+		send(client_sock, buf, len, 0);
 		printf("write: ===%s===\n", buf);
+		memset(buf, 0, sizeof(buf));
 	}
 	close(listen_sock);
 	close(client_sock);
