@@ -14,6 +14,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <signal.h>
 
 #define MAX_BACKLOG 512
 
@@ -24,6 +25,10 @@ std::vector<int> v_connfd;
 std::vector<pthread_t> v_thid;
 // 和客户端进行通信的线程函数
 void *thmain(void *);
+// 与客户端通信的线程的清理函数
+void thmain_cleanup(void *arg);
+// 服务端主动关闭时的清理函数
+void exit_fun(int sig);
 
 int main(int argc, char* argv[])
 {
@@ -33,6 +38,9 @@ int main(int argc, char* argv[])
 		printf("example: ./demo03 8888\n");
 		return -1;
 	}
+	signal(2, exit_fun);
+	signal(15, exit_fun);
+	
 	listen_fd = socket(AF_INET, SOCK_STREAM, 0);	
 	if(listen_fd == -1)
 	{
@@ -74,11 +82,62 @@ int main(int argc, char* argv[])
 		}
 		pthread_t id;
 		pthread_create(&id, NULL, thmain, (void *)(long)connfd);
+		v_thid.push_back(id);
 	}
 	return 0;
 }
-void thmain_exit(int connfd)
+void exit_fun(int sig)
 {
+	printf("server exit...\n");
+	for(auto one: v_thid)
+	{
+		if(one != 0)
+		{
+			pthread_cancel(one);
+		}
+	}
+	// 这里的sleep为了使通信线程有充分时间做善后工作
+	sleep(2);
+	exit(0);
+}
+void thmain_cleanup(void *arg)
+{
+	int connfd = (int)(long)arg;
+	close(connfd);
+	for(int ii = 0; ii < v_connfd.size(); ii++)
+	{
+		if(v_connfd[ii] == connfd)
+		{
+			v_connfd[ii] = 0;
+			break;
+		}
+	}
+	printf("通信子线程[%ld]退出。。。\n", pthread_self());
+}
+// @param: 强转为void *类型的连接的客户端的sockid
+// 与客户端通信的线程有两种退出方式，一种是客户端主动断开连接，这种情况需要在退出时主动关掉通信socket和将自己线程id从v_thid中去掉，另一种是服务端程序主动要退出，这种情况需要主线程做善后工作，取消所有通信线程，关掉所有socket
+void *thmain(void *arg)
+{
+	pthread_cleanup_push(thmain_cleanup, arg);
+	int connfd = (int)(long)arg;
+	int ret = -1;
+	char buf[512];
+	memset(buf, 0, sizeof(buf));
+	while(true)
+	{
+		ret = recv(connfd, buf, 512, 0);
+		if(ret <= 0)
+		{
+			break;
+		}
+		printf("recv from client[%d]: ==%s==\n", connfd, buf);
+		ret = send(connfd, buf, 512, 0);
+		if(ret <= 0)
+		{
+			break;
+		}
+		printf("send to client[%d]: ==%s==\n", connfd, buf);
+	}
 	printf("客户端[%d]已断开连接。。。\n", connfd);
 	close(connfd);
 	for(int ii = 0; ii < v_connfd.size(); ii++)
@@ -90,30 +149,6 @@ void thmain_exit(int connfd)
 
 		}
 	}
-	exit(0);
-}
-// @param: 强转为void *类型的连接的客户端的sockid
-void *thmain(void *arg)
-{
-	int connfd = (int)(long)arg;
-	int ret = -1;
-	char buf[512];
-	memset(buf, 0, sizeof(buf));
-	while(true)
-	{
-		ret = recv(connfd, buf, 512, 0);
-		if(ret == -1)
-		{
-			thmain_exit(connfd);
-		}
-		printf("recv from client[%d]: ==%s==\n", connfd, buf);
-		ret = send(connfd, buf, 512, 0);
-		if(ret == -1)
-		{
-			thmain_exit(connfd);
-		}
-		printf("send to client[%d]: ==%s==\n", connfd, buf);
-	}
-
+	pthread_cleanup_pop(1);
 	return NULL;
 }
