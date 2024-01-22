@@ -60,13 +60,13 @@ int main(int argc, char* argv[])
 	while(true)
 	{
 		ret = send(sockfd, buf, 512, 0);
-		if(ret == -1)
+		if(ret <= 0)
 		{
 			cleanup(1);
 		}
 		printf("send: ===%s===\n", buf);
 		ret = recv(sockfd, buf, 512, 0);
-		if(ret == -1)
+		if(ret <= 0)
 		{
 			cleanup(1);
 		}
