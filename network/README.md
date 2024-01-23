@@ -23,3 +23,8 @@ Example: ./demo04 127.0.0.1 8888
 - 这是一个测试脚本，它启动3000个demo04客户端进程，用于测试demo03是否可以正确完成程序退出时的清理工作
 - Usage: ./client.sh 
 Example: ./client.sh
+
+### demo05.cpp 
+- 这是一个多进程网络通信服务端，它接受客户端连接后将接受到的来自客户端的消息原封不动发送回去。Ctrl-c或kill可以终止该程序
+- Usage: ./demo05 ip port
+Example: ./demo05 127.0.0.1 8888
