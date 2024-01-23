@@ -1,7 +1,7 @@
 /*****************************************************************************
  * 程序名：demo03.cpp
  * 作者：jiebei
- * 功能：这是一个多线程网络通信服务端，它接受客户端连接后将接受到的来自客户端的消息原封不动发送回去。Ctrl-c或kill可以终止该程序
+ * 功能：这是一个多线程网络通信服务端，它接受客户端连接后将接受到的来自客户端的消息原封不动发送回去。信号2（Ctrl-c）或信号15可以终止该程序
  ***************************************************************************/
 #include <stdio.h>
 #include <vector>
@@ -134,11 +134,14 @@ void thmain_cleanup(void *arg)
 	}
 	pthread_mutex_unlock(&mutex);
 	printf("通信子线程[%ld]退出。。。\n", pthread_self());
+	pthread_exit(NULL);
 }
 // @param: 强转为void *类型的连接的客户端的sockid
 // 与客户端通信的线程有两种退出方式，一种是客户端主动断开连接，这种情况需要在退出时主动关掉通信socket和将自己线程id从v_thid中去掉，另一种是服务端程序主动要退出，这种情况需要主线程做善后工作，取消所有通信线程，关掉所有socket
 void *thmain(void *arg)
 {
+	// 分离线程
+	pthread_detach(pthread_self());
 	pthread_cleanup_push(thmain_cleanup, arg);
 	int connfd = (int)(long)arg;
 	int ret = -1;
