@@ -10,9 +10,17 @@
 #include <pthread.h>
 #include <signal.h>
 #include <sys/select.h>
+#include <time.h>
 #define MAX_BACKLOG 512
 
 int listen_fd = -1;
+// 监听socket和所有连接socket
+fd_set readfds;
+// 记录最大的socket
+int maxfd = -1;
+// 程序退出时的清理函数
+void exit_fun(int sig);
+
 int main(int argc, char* argv[])
 {
 	if(argc != 2)
@@ -21,6 +29,10 @@ int main(int argc, char* argv[])
 		printf("Example: ./demo06 8888\n");
 		return 0;
 	}
+
+	signal(2, exit_fun);
+	signal(15, exit_fun);
+
 	listen_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if(listen_fd == -1)
 	{
@@ -51,21 +63,26 @@ int main(int argc, char* argv[])
 		close(listen_fd);
 		exit(-1);
 	}
-	fd_set readfds;
 	FD_ZERO(&readfds);
-	int maxfd = listen_fd;
+	maxfd = listen_fd;
 	FD_SET(listen_fd, &readfds);
 	fd_set tmpfds;
 	FD_ZERO(&tmpfds);
+	// 以下可以设置select的超时机制
+	struct timeval st_timeval;
+	memset(&st_timeval, 0, sizeof(struct timeval));
+	st_timeval.tv_sec = 10;
+	st_timeval.tv_usec = 0;
 	while(true)
 	{
 		tmpfds = readfds;
 		int cntfd = select(maxfd+1, &tmpfds, NULL, NULL, NULL);
+		// 这是带10秒超时机制的select
+		// int cntfd = select(maxfd+1, &tmpfds, NULL, NULL, &st_timeval);
 		if(cntfd == -1)
 		{
 			printf("select() failed!\n");
-			// 这里应该交给统一的退出函数处理
-			exit(-1);
+			exit_fun(-1);
 		}
 		if(cntfd == 0)
 		{
@@ -85,7 +102,7 @@ int main(int argc, char* argv[])
 				{
 					printf("accept() failed!\n");
 					printf("errno[%d] info[%s]\n", errno, strerror(errno));
-					exit(-1);
+					exit_fun(-1);
 				}
 				// 新连接的sock如果大于maxfd，就更新maxfd
 				// 将新连接的socket加入readfds
@@ -132,4 +149,20 @@ int main(int argc, char* argv[])
 	}
 
 	return 0;
+}
+void exit_fun(int sig)
+{
+	signal(2, SIG_IGN);
+	signal(15, SIG_IGN);
+
+	for(int ii = 0; ii <= maxfd; ii++)
+	{
+		if(FD_ISSET(ii, &readfds))
+		{
+			printf("socket[%d] close...\n", ii);
+			close(ii);
+		}
+	}
+	printf("server exit...\n");
+	exit(0);
 }
