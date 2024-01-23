@@ -82,7 +82,9 @@ int main(int argc, char* argv[])
 		}
 		pthread_t id;
 		pthread_create(&id, NULL, thmain, (void *)(long)connfd);
+		pthread_mutex_lock(&mutex);
 		v_thid.push_back(id);
+		pthread_mutex_unlock(&mutex);
 	}
 	return 0;
 }
