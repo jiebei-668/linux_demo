@@ -19,6 +19,7 @@
 #define MAX_BACKLOG 512
 
 int listen_fd = -1;
+int connfd = -1;
 // 存放所有与客户端通信的子线程的线程id
 std::vector<pthread_t> v_thid;
 // 操作v_thid的锁
@@ -27,8 +28,10 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 void *thmain(void *);
 // 与客户端通信的线程的清理函数
 void thmain_cleanup(void *arg);
-// 服务端主动关闭时的清理函数
-void exit_fun(int sig);
+// 服务端主进程退出时的清理函数，要关listen socket，并给所有子进程发信号让其退出
+void father_exit(int sig);
+// 服务端进行通信的子进程退出时的清理函数，要关socket
+void son_exit(int sig);
 
 int main(int argc, char* argv[])
 {
@@ -39,9 +42,9 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 	signal(SIGCHLD, SIG_IGN);
-	signal(2, exit_fun);
-	signal(15, exit_fun);
-	
+	signal(2, father_exit);
+	signal(15, father_exit);
+
 	listen_fd = socket(AF_INET, SOCK_STREAM, 0);	
 	if(listen_fd == -1)
 	{
@@ -73,13 +76,14 @@ int main(int argc, char* argv[])
 		close(listen_fd);
 		exit(-1);
 	}
-	int connfd = -1;
 	while(true)
 	{
 		connfd = accept(listen_fd, NULL, NULL);
 		if(fork() == 0)
 		{
 			// son
+			signal(2, son_exit);
+			signal(15, son_exit);
 			close(listen_fd);
 			int ret = -1;
 			char buf[512];
@@ -112,79 +116,28 @@ int main(int argc, char* argv[])
 	}
 	return 0;
 }
-void exit_fun(int sig)
+void father_exit(int sig)
 {
-	printf("server exit...\n");
-	pthread_mutex_lock(&mutex);
-	for(auto one: v_thid)
-	{
-		if(one != 0)
-		{
-			pthread_cancel(one);
-		}
-	}
-	pthread_mutex_unlock(&mutex);
-	// 这里的sleep为了使通信线程有充分时间做善后工作
-	sleep(2);
+	// 屏蔽信号，防止信号处理函数嵌套
+	signal(2, SIG_IGN);
+	signal(15, SIG_IGN);
 
-	// 用于测试线程是否有序退出，互斥锁是否成功	
-	/*
-	int remain = 0;
-	pthread_mutex_lock(&mutex);
-	for(auto one: v_thid)
-	{
-		//printf("%ld\n", one);
-		remain += (one != 0);
-	}
-	pthread_mutex_unlock(&mutex);
-	printf("remain thid=%d\n", remain);
-	*/
+	close(listen_fd);
+
+	printf("father process[%d] receive sig[%d], killing all son process...\n", getpid(), sig);
+	kill(0, 15);
+	sleep(2);
+	printf("father process[%d] exit..., already killed all son process...\n", getpid());
 	exit(0);
 }
-void thmain_cleanup(void *arg)
+void son_exit(int sig)
 {
-	int connfd = (int)(long)arg;
+	// 屏蔽信号，防止信号处理函数嵌套
+	signal(2, SIG_IGN);
+	signal(15, SIG_IGN);
+
 	close(connfd);
-	pthread_mutex_lock(&mutex);
-	pthread_t thid = pthread_self();
-	for(int ii = 0; ii < v_thid.size(); ii++)
-	{
-		if(v_thid[ii] == thid)
-		{
-			v_thid[ii] = 0;
-			//v_thid.erase(v_thid.begin()+ii);
-			break;
-		}
-	}
-	pthread_mutex_unlock(&mutex);
-	printf("通信子线程[%ld]退出。。。\n", pthread_self());
-}
-// @param: 强转为void *类型的连接的客户端的sockid
-// 与客户端通信的线程有两种退出方式，一种是客户端主动断开连接，这种情况需要在退出时主动关掉通信socket和将自己线程id从v_thid中去掉，另一种是服务端程序主动要退出，这种情况需要主线程做善后工作，取消所有通信线程，关掉所有socket
-void *thmain(void *arg)
-{
-	pthread_cleanup_push(thmain_cleanup, arg);
-	int connfd = (int)(long)arg;
-	int ret = -1;
-	char buf[512];
-	memset(buf, 0, sizeof(buf));
-	while(true)
-	{
-		ret = recv(connfd, buf, 512, 0);
-		if(ret <= 0)
-		{
-			break;
-		}
-		printf("recv from client[%d]: ==%s==\n", connfd, buf);
-		ret = send(connfd, buf, 512, 0);
-		if(ret <= 0)
-		{
-			break;
-		}
-		printf("send to client[%d]: ==%s==\n", connfd, buf);
-	}
-	printf("客户端[%d]已断开连接。。。\n", connfd);
-	// 线程清理函数三个触发条件：被取消 pthread_exit 运行到pthread_cleanup_pop
-	pthread_cleanup_pop(1);
-	return NULL;
+
+	printf("process[%d] receive sig[%d] and exit...\n", getpid(), sig);
+	exit(0);
 }
