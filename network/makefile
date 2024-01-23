@@ -11,4 +11,4 @@ demo05: demo05.cpp
 	g++ -g -o demo05 demo05.cpp
 clean:
 	rm -rf bin/*
-	rm -rf demo01 demo02 demo03 demo04 dem05
+	rm -rf demo01 demo02 demo03 demo04 demo05
