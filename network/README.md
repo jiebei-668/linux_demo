@@ -19,3 +19,7 @@ Example: ./demo03 8888
 - Usage: ./demo04 ip port
 Example: ./demo04 127.0.0.1 8888
 
+### client.sh
+- 这是一个测试脚本，它启动3000个demo04客户端进程，用于测试demo03是否可以正确完成程序退出时的清理工作
+- Usage: ./client.sh 
+Example: ./client.sh
