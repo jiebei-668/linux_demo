@@ -28,3 +28,8 @@ Example: ./client.sh
 - 这是一个多进程网络通信服务端，它接受客户端连接后将接受到的来自客户端的消息原封不动发送回去。信号2（Ctrl-c）或信号15可以终止该程序
 - Usage: ./demo05 ip port
 Example: ./demo05 127.0.0.1 8888
+
+### demo06.cpp 
+- 这是一个使用select的网络通信服务端程序，它接收客户端的消息并原封不动返回。使用信号2（Ctrl-c）或信号15可以终止信号。
+- Usage: ./demo06 ip port
+Example: ./demo06 127.0.0.1 8888
