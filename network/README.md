@@ -33,3 +33,8 @@ Example: ./demo05 127.0.0.1 8888
 - 这是一个使用select的网络通信服务端程序，它接收客户端的消息并原封不动返回。使用信号2（Ctrl-c）或信号15可以终止信号。
 - Usage: ./demo06 ip port
 Example: ./demo06 127.0.0.1 8888
+
+### demo07.cpp 
+- 这是一个使用poll的网络通信服务端程序，它接收客户端的消息并原封不动返回。使用信号2（Ctrl-c）或信号15可以终止信号。
+- Usage: ./demo07 ip port
+Example: ./demo07 127.0.0.1 8888

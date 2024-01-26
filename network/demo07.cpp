@@ -1,3 +1,8 @@
+/***************************************************************************
+ * program: demo07(.cpp)
+ * author: jiebei
+ * 这是一个使用poll的网络通信服务端程序，它接收客户端的消息并原封不动返回。使用信号2（Ctrl-c）或信号15可以终止信号。
+ **************************************************************************/
 #include <stdio.h>
 #include <sys/socket.h>
 #include <errno.h>
@@ -71,7 +76,7 @@ int main(int argc, char* argv[])
 		if(events_num < 0)
 		{
 			// 这里清理掉资源（关socket）后退出
-			exit(-1);
+			exit_fun(-1);
 		}
 		if(events_num == 0)
 		{
@@ -87,6 +92,14 @@ int main(int argc, char* argv[])
 			if(sockets[ii].fd == listenfd)
 			{
 				int connfd = accept(listenfd, NULL, NULL);
+				if(connfd == -1)
+				{
+					printf("accept() failed!\n");
+					printf("errno[%d] info[%s]\n", errno, strerror(errno));
+					exit_fun(-1);
+				}
+				// 新连接的sock如果大于maxfd，就更新maxfd
+				// 将新连接的socket加入sockets
 				sockets[connfd].fd = connfd;
 				sockets[connfd].events = POLLIN;
 				if(connfd > maxfd)
@@ -130,10 +143,12 @@ void exit_fun(int sig)
 {
 	signal(2, SIG_IGN);
 	signal(15, SIG_IGN);
+	// printf("exit_fun POLLIN=%d POLLOUT=%d\n", POLLIN, POLLOUT);
 	for(int ii = 0; ii < MAX_FD_NUM; ii++)
 	{
 		if(~sockets[ii].fd)
 		{
+			printf("socket[%d] closed...\n", sockets[ii].fd);
 			close(sockets[ii].fd);
 			sockets[ii].fd = -1;
 		}
