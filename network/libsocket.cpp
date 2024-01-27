@@ -51,14 +51,17 @@ bool send_nbytes(int socketfd, char *buf, size_t len, int flags)
 	ssize_t rest_len = len;
 	// 调用一次send()发送的字节数
 	ssize_t send_size;
+	// 总共成功发送的字节数
+	ssize_t accumulate_len = 0;
 	while(rest_len > 0)
 	{
-		send_size = send(socketfd, buf, rest_len, flags);
+		send_size = send(socketfd, buf+accumulate_len, rest_len, flags);
 		if(send_size <= 0)
 		{
 			return false;
 		}
 		rest_len -= send_size;
+		accumulate_len += send_size;
 	}
 	return true;
 }
@@ -68,14 +71,17 @@ bool recv_nbytes(int socketfd, char *buf, size_t len, int flags)
 	ssize_t rest_len = len;
 	// 调用一次recv()接收的字节数
 	ssize_t recv_size;
+	// 总共接收的字节数
+	ssize_t accumulate_len = 0;
 	while(rest_len > 0)
 	{
-		recv_size = recv(socketfd, buf, rest_len, flags);
+		recv_size = recv(socketfd, buf+accumulate_len, rest_len, flags);
 		if(recv_size <= 0)
 		{
 			return false;
 		}
 		rest_len -= recv_size;
+		accumulate_len += recv_size;
 	}
 	return true;
 }
