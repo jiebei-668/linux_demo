@@ -38,3 +38,9 @@ Example: ./demo06 8888
 - 这是一个使用poll的网络通信服务端程序，它接收客户端的消息并原封不动返回。使用信号2（Ctrl-c）或信号15可以终止信号。
 - Usage: ./demo07 port
 Example: ./demo07 8888
+
+### demo08.cpp 
+- 本程序使用poll实现正向代理，先暂时固定用127.0.0.1 8881代理127.0.0.1-8883，用127.0.0.1-8882代理127.0.0.1-8884
+- 使用信号2（Ctrl-c)或信号15可以终止程序
+- Usage: ./demo08 configfile Example: ./demo08 ./forwardproxy.config
+- 注：还暂时没有用配置文件来配置代理的服务器的地址，后续更新
