@@ -45,3 +45,37 @@ int init_client(const char *ip, const int port)
 	}
 	return clientfd;
 }
+bool send_nbytes(int socketfd, char *buf, size_t len, int flags)
+{
+	// 还需发送的字节数
+	ssize_t rest_len = len;
+	// 调用一次send()发送的字节数
+	ssize_t send_size;
+	while(rest_len > 0)
+	{
+		send_size = send(socketfd, buf, rest_len, flags);
+		if(send_size <= 0)
+		{
+			return false;
+		}
+		rest_len -= send_size;
+	}
+	return true;
+}
+bool recv_nbytes(int socketfd, char *buf, size_t len, int flags)
+{
+	// 还需接收的字节数
+	ssize_t rest_len = len;
+	// 调用一次recv()接收的字节数
+	ssize_t recv_size;
+	while(rest_len > 0)
+	{
+		recv_size = recv(socketfd, buf, rest_len, flags);
+		if(recv_size <= 0)
+		{
+			return false;
+		}
+		rest_len -= recv_size;
+	}
+	return true;
+}

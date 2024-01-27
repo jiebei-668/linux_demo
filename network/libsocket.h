@@ -14,6 +14,9 @@
 #define MAX_BACKLOG 512
 // 成功返回监听socket，失败返回-1
 int init_server(const char *ip, const int port);
+// 成功返回socket，失败返回-1
 int init_client(const char *ip, const int port);
+bool send_nbytes(int socketfd, char *buf, size_t len, int flags=0);
+bool recv_nbytes(int socketfd, char *buf, size_t len, int flags=0);
 #endif
 
