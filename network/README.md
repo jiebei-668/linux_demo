@@ -44,3 +44,6 @@ Example: ./demo07 8888
 - 使用信号2（Ctrl-c)或信号15可以终止程序
 - Usage: ./demo08 configfile Example: ./demo08 ./forwardproxy.config
 - 注：还暂时没有用配置文件来配置代理的服务器的地址，后续更新
+
+### libsocket.cpp libsocket.h
+- 将常用socket系列函数封装为库
