@@ -14,6 +14,7 @@
 #include <signal.h>
 #include <time.h>
 #include "libsocket.h"
+#include <fcntl.h>
 
 // 最大的打开的socket数量
 #define MAX_FD_NUM 1024
@@ -68,6 +69,10 @@ int main(int argc, char* argv[])
 	{
 		exit_fun(-1);
 	}
+	// 设置监听socket为非阻塞
+	//fcntl(listenfd, F_SETFL, O_NONBLOCK|fcntl(listenfd, F_GETFL));
+	set_nonblock(listenfd);
+
 	sockets[listenfd].fd = listenfd;
 	sockets[listenfd].events = POLLIN;
 	maxfd = listenfd > maxfd ? listenfd : maxfd;
@@ -106,6 +111,9 @@ int main(int argc, char* argv[])
 					printf("errno[%d] info[%s]\n", errno, strerror(errno));
 					continue;
 				}
+				// 设置为非阻塞
+				//fcntl(connfd, F_SETFL, O_NONBLOCK|fcntl(connfd, F_GETFL));
+				set_nonblock(connfd);
 				sockets[connfd].fd = connfd;
 				sockets[connfd].events = POLLIN;
 				maxfd = connfd > maxfd ? connfd : maxfd;
@@ -119,6 +127,9 @@ int main(int argc, char* argv[])
 					printf("errno[%d] info[%s]\n", errno, strerror(errno));
 					continue;
 				}
+				// 设置为非阻塞
+				//fcntl(connfd_opposite, F_SETFL, O_NONBLOCK|fcntl(connfd_opposite, F_GETFL));
+				set_nonblock(connfd_opposite);
 				
 				sockets[connfd_opposite].fd = connfd_opposite;
 				sockets[connfd_opposite].events = POLLIN;
