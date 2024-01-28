@@ -13,6 +13,7 @@
 #include <sys/select.h>
 #include <poll.h>
 #include <sys/epoll.h>
+#include <fcntl.h>
 // listen()的第二个参数
 #define MAX_BACKLOG 512
 // 成功返回监听socket，失败返回-1
@@ -27,5 +28,7 @@ bool recv_nbytes(int socketfd, char *buf, size_t len, int flags=0);
 bool tcp_send(const int socketfd, char *buf, const size_t len, const int flags=0);
 // 加了协议头的recv，接收的前四个字节为长度
 bool tcp_recv(const int socketfd, char *buf, const size_t buf_len, const int flags=0);	
+// 设置为非阻塞
+void set_nonblock(const int socketfd);
 #endif
 

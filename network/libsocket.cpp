@@ -113,3 +113,8 @@ bool tcp_recv(const int socketfd, char *buf, const size_t buf_len, const int fla
 	}
 	return true;
 }
+void set_nonblock(const int socketfd)
+{
+	fcntl(socketfd, F_SETFL, O_NONBLOCK | fcntl(socketfd, F_GETFL));
+	return;
+}
