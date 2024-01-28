@@ -21,6 +21,7 @@
 #include <sys/select.h>
 #include <poll.h>
 #include <time.h>
+#include "libsocket.h"
 
 // 最大的打开的socket数量
 #define MAX_FD_NUM 1024
@@ -83,10 +84,10 @@ int main(int argc, char* argv[])
 		sockets[listenfd].events = POLLIN;
 		listensockaddrs[listenfd].sin_family = AF_INET;
 		listensockaddrs[listenfd].sin_addr.s_addr = inet_addr("127.0.0.1");
-		listensockaddrs[listenfd].sin_port = htons(listenports[ii]);
+		listensockaddrs[listenfd].sin_port = htonl(listenports[ii]);
 		connectsockaddrs[listenfd].sin_family = AF_INET;
 		connectsockaddrs[listenfd].sin_addr.s_addr = inet_addr("127.0.0.1");
-		connectsockaddrs[listenfd].sin_port = htons(connectports[ii]);
+		connectsockaddrs[listenfd].sin_port = htonl(connectports[ii]);
 
 		int opt = 1;
 		setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, (void *)&opt, sizeof(opt));

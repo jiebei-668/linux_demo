@@ -85,3 +85,31 @@ bool recv_nbytes(int socketfd, char *buf, size_t len, int flags)
 	}
 	return true;
 }
+bool tcp_send(const int socketfd, char *buf, const size_t len, const int flags)
+{
+	size_t net_len = htonl(len);
+	if(send_nbytes(socketfd, (char *)&net_len, 4, flags) == false)
+	{
+		return false;
+	}
+	if(send_nbytes(socketfd, buf, len, flags) == false)
+	{
+		return false;
+	}
+	return true;
+}
+bool tcp_recv(const int socketfd, char *buf, const size_t buf_len, const int flags)
+{
+	size_t len;
+	if(recv_nbytes(socketfd, (char *)&len, 4, flags) == false)
+	{
+		return false;
+	}
+	len = ntohl(len);
+
+	if(recv_nbytes(socketfd, buf, len, flags) == false)
+	{
+		return false;
+	}
+	return true;
+}
