@@ -1,25 +1,17 @@
 /****************************************************************************
  * program: demo08.cpp
  * author: jiebei
- * 本程序使用poll实现正向代理，先暂时固定用127.0.0.1 8881代理127.0.0.1-8883，用127.0.0.1-8882代理127.0.0.1-8884
+ * 本程序使用poll实现正向代理
  * 使用信号2（Ctrl-c)或信号15可以终止程序
- * Usage: ./demo08 configfile
- * Example: ./demo08 ./forwardproxy.config
- * 注：还暂时没有用配置文件来配置代理的服务器的地址，后续更新
+ * Usage: ./demo08 proxy_port server_ip server_port
+ * Example: ./demo08 6666 127.0.0.1 8888
+ * 注：还暂时没有用配置文件来配置多个代理服务器的地址，后续更新
  **************************************************************************/
 #include <stdio.h>
-#include <sys/socket.h>
 #include <errno.h>
-#include <string.h>
 #include <stdlib.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
 #include <pthread.h>
 #include <signal.h>
-#include <sys/select.h>
-#include <poll.h>
 #include <time.h>
 #include "libsocket.h"
 
@@ -31,15 +23,19 @@ struct pollfd sockets[MAX_FD_NUM];
 // 记录所有非监听socket的对端socket
 // 监听socket的对端socket记为-1
 int opposite_socket[MAX_FD_NUM];
+/* 留作扩展
 // 记录所有监听socket的sockaddr，具体个数由参数文件配置
 // 如果socket=ii是监听socket，那么该监听socket的sockaddr是listensockaddrs[ii], 也就是说该socet对应的代理服务器的sozkaddr是listensockaddrs[ii]
-struct sockaddr_in listensockaddrs[MAX_FD_NUM];
+// struct sockaddr_in listensockaddrs[MAX_FD_NUM];
+
 // 记录所有的被代理服务器的sockaddr，具体个数由参数文件配置
 // 如果socket=ii是非监听socket，那么对应的被代理服务器的sockaddr是connectsockaddrs[ii]
 // 当由客户端连接到代理程序某个监听socket=ii时，代理程序connect()被代理服务器时需要connectsockaddrs[ii]
-struct sockaddr_in connectsockaddrs[MAX_FD_NUM];
+// struct sockaddr_in connectsockaddrs[MAX_FD_NUM];
+
 // 如果socket=ii是监听socket，那么is_listenfd[ii]为true
 bool is_listenfd[MAX_FD_NUM];
+*/
 // 记录最大socket
 int maxfd = -1;
 
@@ -48,10 +44,10 @@ void exit_fun(int sig);
 
 int main(int argc, char* argv[])
 {
-	if(argc != 2)
+	if(argc != 4)
 	{
-		printf("Usage: ./demo08 configfile\n");
-		printf("Example: ./demo08 ./forwardproxy.config\n");
+		printf("Usage: ./demo08 proxy_port server_ip server_port\n");
+		printf("Example: ./demo08 6666 127.0.0.1 8888\n");
 		exit(-1);
 	}
 	signal(2, exit_fun);
@@ -60,54 +56,27 @@ int main(int argc, char* argv[])
 	{
 		sockets[ii].fd = -1;
 		opposite_socket[ii] = -1;
-		memset(&listensockaddrs[ii], 0, sizeof(struct sockaddr_in));
-		memset(&connectsockaddrs[ii], 0, sizeof(struct sockaddr_in));
-		is_listenfd[ii] = false;
 	}
 	maxfd = -1;
 	// 初始化所有监听端口
-	// 目前暂时只设定两个监听端口，分别监听8881和8882，分别对应被代理服务器127.0.0.1-8883和127.0.0.1-8884
 	// 这里可以扩展为读取配置文件，初始化所有监听端口
-	int listenports[2] = {8881, 8882};
-	int connectports[2] = {8883, 8884};
-	for(int ii = 0; ii < sizeof(listenports)/sizeof(listenports[0]); ii++)
+	int listenfd;
+	int listenport = atoi(argv[1]);
+	int connectport = atoi(argv[3]);
+	listenfd = init_server("127.0.0.1", listenport);
+	if(listenfd == -1)
 	{
-		int listenfd = socket(AF_INET, SOCK_STREAM, 0);
-		if(listenfd == -1)
-		{
-			printf("proxy socket failed!\n");
-			printf("errno[%d] info[%s]\n", errno, strerror(errno));
-			exit_fun(-1);
-		}
-
-		sockets[listenfd].fd = listenfd;
-		sockets[listenfd].events = POLLIN;
-		listensockaddrs[listenfd].sin_family = AF_INET;
-		listensockaddrs[listenfd].sin_addr.s_addr = inet_addr("127.0.0.1");
-		listensockaddrs[listenfd].sin_port = htonl(listenports[ii]);
-		connectsockaddrs[listenfd].sin_family = AF_INET;
-		connectsockaddrs[listenfd].sin_addr.s_addr = inet_addr("127.0.0.1");
-		connectsockaddrs[listenfd].sin_port = htonl(connectports[ii]);
-
-		int opt = 1;
-		setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, (void *)&opt, sizeof(opt));
-		if(bind(listenfd, (struct sockaddr *)&listensockaddrs[listenfd], sizeof(listensockaddrs[listenfd])) == -1)
-		{
-			printf("proxy bind() failed!\n");
-			printf("errno[%d] info[%s]\n", errno, strerror(errno));
-			exit_fun(-1);
-		}
-		if(listen(listenfd, MAX_BACKLOG) == -1)
-		{
-			printf("proxy listen() failed!\n");
-			printf("errno[%d] info[%s]\n", errno, strerror(errno));
-			exit_fun(-1);
-		}
-		maxfd = listenfd > maxfd ? listenfd : maxfd;
-		// 这段代码可以放下面，而设置pollfd的代码必须放上面，因为socket()后需要bind和listen()，如果失败，在exit_fun中需要关闭socket，所以设置pollfd的fd的代码必须紧跟socket
-		is_listenfd[listenfd] = true;
-		opposite_socket[listenfd] = -1;
+		exit_fun(-1);
 	}
+	struct sockaddr_in connectsockaddr;
+	memset(&connectsockaddr, 0, sizeof(struct sockaddr_in));
+	connectsockaddr.sin_family = AF_INET;
+	connectsockaddr.sin_port = htons(connectport);
+	connectsockaddr.sin_addr.s_addr = inet_addr(argv[2]);
+	sockets[listenfd].fd = listenfd;
+	sockets[listenfd].events = POLLIN;
+	maxfd = listenfd > maxfd ? listenfd : maxfd;
+	opposite_socket[listenfd] = -1;
 
 	while(true)
 	{
@@ -132,7 +101,7 @@ int main(int argc, char* argv[])
 				continue;
 			}
 			// 处理监听socket的事件
-			if(is_listenfd[fd] == true)
+			if(fd == listenfd)
 			{
 				int connfd = accept(fd, NULL, NULL);
 				if(connfd == -1)
@@ -158,7 +127,7 @@ int main(int argc, char* argv[])
 				sockets[connfd_opposite].fd = connfd_opposite;
 				sockets[connfd_opposite].events = POLLIN;
 				maxfd = connfd_opposite > maxfd ? connfd_opposite : maxfd;
-				int connect_ret = connect(connfd_opposite, (struct sockaddr *)&connectsockaddrs[fd], sizeof(connectsockaddrs[fd]));
+				int connect_ret = connect(connfd_opposite, (struct sockaddr *)&connectsockaddr, sizeof(connectsockaddr));
 				if(connect_ret == -1)
 				{
 					// 处理失败

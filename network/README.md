@@ -40,10 +40,10 @@ Example: ./demo06 8888
 Example: ./demo07 8888
 
 ### demo08.cpp 
-- 本程序使用poll实现正向代理，先暂时固定用127.0.0.1 8881代理127.0.0.1-8883，用127.0.0.1-8882代理127.0.0.1-8884
-- 使用信号2（Ctrl-c)或信号15可以终止程序
-- Usage: ./demo08 configfile Example: ./demo08 ./forwardproxy.config
-- 注：还暂时没有用配置文件来配置代理的服务器的地址，后续更新
+- 本程序使用poll实现正向代理，使用信号2（Ctrl-c)或信号15可以终止程序
+- Usage: ./demo08 proxy_port server_ip server_port
+- Example: ./demo08 6666 127.0.0.1 8888
+- 注：还暂时没有用配置文件来配置多个代理服务器的地址，后续更新
 
 ### libsocket.cpp libsocket.h
 - 将常用socket系列函数封装为库
