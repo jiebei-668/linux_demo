@@ -68,11 +68,6 @@ int main(int argc, char* argv[])
 	{
 		exit_fun(-1);
 	}
-	struct sockaddr_in connectsockaddr;
-	memset(&connectsockaddr, 0, sizeof(struct sockaddr_in));
-	connectsockaddr.sin_family = AF_INET;
-	connectsockaddr.sin_port = htons(connectport);
-	connectsockaddr.sin_addr.s_addr = inet_addr(argv[2]);
 	sockets[listenfd].fd = listenfd;
 	sockets[listenfd].events = POLLIN;
 	maxfd = listenfd > maxfd ? listenfd : maxfd;
@@ -114,35 +109,22 @@ int main(int argc, char* argv[])
 				sockets[connfd].fd = connfd;
 				sockets[connfd].events = POLLIN;
 				maxfd = connfd > maxfd ? connfd : maxfd;
-				int connfd_opposite = socket(AF_INET, SOL_SOCKET, 0);
+				int connfd_opposite = init_client_and_connect(argv[2], connectport);
 				if(connfd_opposite == -1)
 				{
 					// 处理失败
 					close(connfd);
 					sockets[connfd].fd = -1;
-					printf("proxy accept success, but socket() failed!\n");
+					printf("proxy accept success, but socket() or connect() failed!\n");
 					printf("errno[%d] info[%s]\n", errno, strerror(errno));
 					continue;
 				}
+				
 				sockets[connfd_opposite].fd = connfd_opposite;
 				sockets[connfd_opposite].events = POLLIN;
 				maxfd = connfd_opposite > maxfd ? connfd_opposite : maxfd;
-				int connect_ret = connect(connfd_opposite, (struct sockaddr *)&connectsockaddr, sizeof(connectsockaddr));
-				if(connect_ret == -1)
-				{
-					// 处理失败
-					close(connfd);
-					sockets[connfd].fd = -1;
-					close(connfd_opposite);
-					sockets[connfd_opposite].fd = -1;
-					printf("proxy accept() and socket() succuss, but connect() failed!\n");
-					continue;
-				}
-				else
-				{
-					opposite_socket[connfd] = connfd_opposite;
-					opposite_socket[connfd_opposite] = connfd;
-				}
+				opposite_socket[connfd] = connfd_opposite;
+				opposite_socket[connfd_opposite] = connfd;
 			}
 			// 处理非监听socket的事件
 			// 若是断开连接，需要关闭两端的sockets
