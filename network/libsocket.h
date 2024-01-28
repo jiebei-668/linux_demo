@@ -10,12 +10,15 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <string.h>
+#include <sys/select.h>
+#include <poll.h>
+#include <sys/epoll.h>
 // listen()的第二个参数
 #define MAX_BACKLOG 512
 // 成功返回监听socket，失败返回-1
 int init_server(const char *ip, const int port);
 // 成功返回socket，失败返回-1
-int init_client(const char *ip, const int port);
+int init_client_and_connect(const char *ip, const int port);
 // 发送len个字节数据
 bool send_nbytes(int socketfd, char *buf, size_t len, int flags=0);
 // 接收len个字节数据

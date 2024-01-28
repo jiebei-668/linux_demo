@@ -26,7 +26,7 @@ int init_server(const char *ip, const int port)
 	}
 	return listenfd;
 }
-int init_client(const char *ip, const int port)
+int init_client_and_connect(const char *ip, const int port)
 {
 	int clientfd = socket(AF_INET, SOL_SOCKET, IPPROTO_TCP);
 	if(clientfd == -1)
