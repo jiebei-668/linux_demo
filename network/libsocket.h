@@ -30,5 +30,7 @@ bool tcp_send(const int socketfd, char *buf, const size_t len, const int flags=0
 bool tcp_recv(const int socketfd, char *buf, const size_t buf_len, const int flags=0);	
 // 设置为非阻塞
 void set_nonblock(const int socketfd);
+// 设置reuseaddr，防止连接了客户端的服务端主动关闭服务后端口无法被立即重用
+void set_reuseaddr(const int socketfd);
 #endif
 

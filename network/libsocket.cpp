@@ -118,3 +118,9 @@ void set_nonblock(const int socketfd)
 	fcntl(socketfd, F_SETFL, O_NONBLOCK | fcntl(socketfd, F_GETFL));
 	return;
 }
+void set_reuseaddr(const int socketfd)
+{
+	int opt = 1;
+	setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, (void *)&opt, sizeof(opt));
+	return;
+}
