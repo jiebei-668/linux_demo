@@ -1,5 +1,5 @@
 # 在make前需要单独制作动态库和静态库 libsocket.so libsocket.a 命令在最后
-all: demo01 demo02 demo03 demo04 demo05 demo06 demo07 demo08 demo09 demo10
+all: demo01 demo02 demo03 demo04 demo05 demo06 demo07 demo08 demo09 demo10 demo11
 demo01: demo01.c
 	gcc -g -o demo01 demo01.c
 demo02: demo02.c
@@ -20,6 +20,8 @@ demo09: demo09.cpp
 	g++ -g -o demo09 demo09.cpp -L./ -lsocket
 demo10: demo10.cpp
 	g++ -g -o demo10 demo10.cpp -L./ -lsocket
+demo11: demo11.cpp
+	g++ -g -o demo11 demo11.cpp -L./ -lsocket
 libsocket.a: libsocket.cpp libsocket.h
 	g++ -c -o libsocket.o libsocket.cpp
 	ar rsv libsocket.a libsocket.o
@@ -30,4 +32,4 @@ libsocket.so: libsocket.cpp libsocket.h
 	rm -f libsocket.o
 clean:
 	rm -rf bin/*
-	rm -rf libsocket.so libsocket.a demo01 demo02 demo03 demo04 demo05 demo06 demo07 demo08 demo09 demo10
+	rm -rf libsocket.so libsocket.a demo01 demo02 demo03 demo04 demo05 demo06 demo07 demo08 demo09 demo10 demo11

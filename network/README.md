@@ -59,3 +59,9 @@ Example: ./demo07 8888
 
 ### libsocket.cpp libsocket.h
 - 将常用socket系列函数封装为库
+
+### demo11.cpp 
+- 这是一个使用epoll的网络通信服务端程序，它接收客户端的消息并原封不动返回。使用信号2（Ctrl-c）或信号15可以终止信号。
+- Usage: ./demo11 port
+Example: ./demo11 8888
+
