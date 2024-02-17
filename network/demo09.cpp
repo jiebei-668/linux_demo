@@ -1,14 +1,20 @@
 /********************************************************************************************
  * program: demo09.cpp
  * author: jiebei
- * 本程序是反向代理程序的内网端程序，接通被代理服务程序和通过外网反向代理程序中转的外网客户端程序。目前暂时由参数写死外网的代理端口和内网的端口以及被代理服务程序的地址，且暂时只代理一个，后续由配置文件指定，可指定多个代理。
- * 程序流程：外网代理程序和内网代理程序初始化监听端口，当外网代理程序收到连接请求后向内网代理程序发起连接，内网代理程序接收连接并向被代理服务程序发起连接。这样建立了被代理程序和外网客户程序的连接后，外网客户端程序就可以访问被代理程序。
- * Usage: ./demo09 in_port out_port server_ip server_port
- * Example: ./demo09 6688 8866 127.0.0.1 8888;
+ * 本程序是反向代理程序的内网端程序，接通被代理服务程序和通过外网反向代理程序中转的外网客户端程序。参数为外网服务器地址与外网代理程序和内网代理程序通信的端口。
+ * 程序流程：
+ * 1 外网代理程序初始化和内网代理程序通信的socket（监听socket）
+ * 2 内网代理程序向外网代理程序发起连接，外网代理程序接受内网代理程序的连接建立控制通道
+ * 3 外网代理程序解析被代理服务程序的参数（文件），逐个建立和外网客户端程序通信的socket（监听socket）
+ * 3 循环执行 4
+ * 4 当外网代理程序收到外网客户端程序连接请求后，向内网代理程序通过控制通道发送外网客户端程序请求的内网被代理程序的信息。内网代理程序接收外网代理程序通过控制通道发来的被代理程序的信息向被代理服务程序和外网代理程序发起连接，并且将这两端socket对接。外网代理程序接受内网代理程序的连接后同样地将内网代理程序的socket和外网客户端socket对接。这样建立了被代理程序和外网客户程序的连接后，外网客户端程序就可以访问被代理程序。
+ * Usage: ./demo09 out_ip out_port
+ * Example: ./demo09 127.0.0.1 8866
  *******************************************************************************************/
 #include "libsocket.h"
 #define MAX_FD_NUM 1024
 struct pollfd sockets[MAX_FD_NUM];
+int cmdsocket;
 int maxfd;
 // 记录对端socket的结构，如果没有对端socket为-1
 // 如果ii的对端为jj，那么opposite_socket[ii]=jj opposite_socket[jj]=ii
@@ -20,15 +26,12 @@ int update_maxfd();
 
 int main(int argc, char* argv[])
 {
-	if(argc != 5)
+	if(argc != 3)
 	{
-		printf("Usage: ./demo09 in_port out_port server_ip server_port\n");
-		printf("Example: ./demo09 6688 8866 127.0.0.1 8888\n");
+		printf("Usage: ./demo09 out_ip out_port\n");
+		printf("Example: ./demo09 127.0.0.1 8866\n");
 		exit(-1);
 	}
-	// 将代理的服务器的ip和端口发给外网代理程序
-	// 这里暂时固定	
-	
 	signal(2, exit_fun);
 	signal(15, exit_fun);
 	for(int ii = 0; ii < MAX_FD_NUM; ii++)
@@ -36,21 +39,17 @@ int main(int argc, char* argv[])
 		sockets[ii].fd = -1;
 		opposite_socket[ii] = -1;
 	}
-	int listenfd = init_server("127.0.0.1", atoi(argv[1]));
-	if(listenfd == -1)
+	// 向外网代理程序发起连接，建立控制通道
+	if((cmdsocket = init_client_and_connect(argv[1], atoi(argv[2]))) == -1)
 	{
-		printf("init_server() failed...\n");
-		exit_fun(-1);
+		printf("内网代理程序错误[0]-init_client_and_connect() failed\n");
+		exit(-1);
 	}
-	// 设置可重用端口
-	set_reuseaddr(listenfd);
 	// 设置非阻塞
-	set_nonblock(listenfd);
-	// 更新pollfd
-	sockets[listenfd].fd = listenfd;
-	sockets[listenfd].events = POLLIN;
-	// 更新maxfd
-	maxfd = listenfd;
+	set_nonblock(cmdsocket);
+	maxfd = cmdsocket;
+	sockets[cmdsocket].fd = cmdsocket;
+	sockets[cmdsocket].events = POLLIN;
 	
 	while(true)
 	{
@@ -73,36 +72,48 @@ int main(int argc, char* argv[])
 			{
 				continue;
 			}
-			if(fd == listenfd)
+			// 如果是控制socket，就需要接收控制信息并同时向外网代理程序和由控制信息指定的内网被代理程序发起连接
+			if(fd == cmdsocket)
 			{
-				int connfd = accept(listenfd, NULL, NULL);
-				if(connfd == -1)
+				char cmdbuf[100];
+				memset(cmdbuf, 0, sizeof(cmdbuf));
+				int rsize = recv(sockets[fd].fd, cmdbuf, sizeof(cmdbuf), 0);
+				if(rsize <= 0)
+				{
+					// 错误处理
+					continue;
+				}
+				char *sep_pos = strstr(cmdbuf, "<sep>");
+				char ip[sep_pos-cmdbuf+1];
+				memset(ip, 0, sizeof(ip));
+				strncpy(ip, cmdbuf, sep_pos-cmdbuf);
+				// 向内网被代理程序发起连接
+				int in_connfd = init_client_and_connect(ip, atoi(sep_pos+5));
+				if(in_connfd == -1)
 				{
 					continue;
 				}
-				int connfd_opposite = init_client_and_connect(argv[3], atoi(argv[4]));
-				if(connfd_opposite == -1)
+				// 向外网代理程序发起连接
+				int out_connfd = init_client_and_connect(argv[1], atoi(argv[2]));
+				if(out_connfd == -1)
 				{
-					close(connfd);
+					close(in_connfd);
 					continue;
 				}
-				// 设置非阻塞
-				set_nonblock(connfd);
-				set_nonblock(connfd_opposite);
-				// 更新maxfd
-				maxfd = connfd_opposite > maxfd ? connfd_opposite: maxfd;
-				maxfd = connfd > maxfd ? connfd : maxfd;
-				// 更新pollfd结构体
-				sockets[connfd].fd = connfd;
-				sockets[connfd].events = POLLIN;
-				sockets[connfd_opposite].fd = connfd_opposite;
-				sockets[connfd_opposite].events = POLLIN;
-				// 更新记录对端socket数组
-				opposite_socket[connfd] = connfd_opposite;
-				opposite_socket[connfd_opposite] = connfd;
+				// 对接外网代理程序和内网被代理程序
+				set_nonblock(in_connfd);
+				set_nonblock(out_connfd);
+				sockets[in_connfd].fd = in_connfd;
+				sockets[in_connfd].events = POLLIN;
+				maxfd = maxfd > in_connfd ? maxfd : in_connfd;
+				sockets[out_connfd].fd = out_connfd;
+				sockets[out_connfd].events = POLLIN;
+				maxfd = maxfd > out_connfd ? maxfd : out_connfd;
+				opposite_socket[in_connfd] = out_connfd;
+				opposite_socket[out_connfd] = in_connfd;
 				continue;
 			}
-			// 如果不是监听socket，将数据发给对端
+			// 如果不是控制socket，将数据发给对端
 			char buf[1600];
 			memset(buf, 0, sizeof(buf));
 			int rsize = recv(fd, buf, sizeof(buf), 0);
