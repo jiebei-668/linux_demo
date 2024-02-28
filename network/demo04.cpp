@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
 	int ret;
 	while(true)
 	{
-		ret = send(sockfd, buf, 512, 0);
+		ret = send(sockfd, buf, strlen(buf), 0);
 		if(ret <= 0)
 		{
 			cleanup(1);
