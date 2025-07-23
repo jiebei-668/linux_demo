@@ -19,16 +19,17 @@ Channel::~Channel()
 }
 void Channel::handleEvent()
 {
-	if(POLLIN & m_revents)
-	{
-		assert(m_readCallback);
-		m_readCallback();
-	}
-	if(POLLHUP & m_revents)
-	{
-		assert(m_closeCallback);
-		m_closeCallback();
-	}
+	 // channel对事件的处理由上层调用如acceptor或者coonnector
+	 if(POLLIN & m_revents)
+	 {
+	 	assert(m_readCallback);
+	 	m_readCallback();
+	 }
+	 if(POLLRDHUP & m_revents || POLLHUP & m_revents)
+	 {
+	 	assert(m_closeCallback);
+	 	m_closeCallback();
+	 }
 }
 void Channel::remove()
 {
@@ -45,6 +46,7 @@ void Channel::enableReading()
 }
 void Channel::enableClose()
 {
+	m_event |= POLLRDHUP;
 	m_event |= POLLHUP;
 	registerToLoop();
 }

@@ -44,6 +44,8 @@ Acceptor::Acceptor(Eventloop *loop, const char *ip, const int port)
 }
 Acceptor::~Acceptor()
 {
+	printf("Acceptor quit...\n");
+	close(m_listenfd);
 }
 void Acceptor::handleRead()
 {
@@ -62,6 +64,7 @@ void Acceptor::handleRead()
 			::close(connfd);
 		}
 	}
+	// 错误处理，打印错误信息，然后忽略该错误，继续执行
 	else
 	{
 		printf("Acceptor::handleRead() accept() failed...\nerrno: %d[%s]\n", errno, strerror(errno));
@@ -69,6 +72,12 @@ void Acceptor::handleRead()
 }
 int Acceptor::listen()
 {
+	if(!m_newConnectionCallback)
+	{
+		printf("Acceptor::handler m_newConnectionCallback is null...\n");
+		printf("Server init fail...\n");
+		exit(-1);
+	}
 	m_channel->enableReading();
 	return ::listen(m_listenfd, 10);
 }

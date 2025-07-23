@@ -4,6 +4,7 @@
 #include "TcpConnection.h"
 #include <unordered_map>
 #include "Eventloop.h"
+#include "stdio.h"
 // 注：使用方法 指定三个回调（对应TcpConnection中三个）后 调用init()
 class TcpServer
 {
@@ -34,6 +35,7 @@ public:
 	{
 		m_closeCallback = cb;
 	}
+	void handleTcpConnectionClose(TcpConnection *p);
 	// 该函数传递给Acceptor使用
 	// 函数内负责初始化新的TcpConnection对象，设置其三个回调并启动TcpConnection
 	void newConnection(int fd, struct sockaddr *client, socklen_t *len);

@@ -24,6 +24,8 @@ demo11: demo11.cpp
 	g++ -g -o demo11 demo11.cpp -L./ -lsocket
 demo12: demo12.cpp
 	g++ -g -o demo12 demo12.cpp -L./ -lsocket
+demo13: demo13.cpp
+	gcc -g -o demo13 demo13.cpp
 libsocket.a: libsocket.cpp libsocket.h
 	g++ -c -o libsocket.o libsocket.cpp
 	ar rsv libsocket.a libsocket.o
@@ -34,6 +36,6 @@ libsocket.so: libsocket.cpp libsocket.h
 	rm -f libsocket.o
 clean:
 	rm -rf bin/*
-	rm -rf libsocket.so libsocket.a demo01 demo02 demo03 demo04 demo05 demo06 demo07 demo08 demo09 demo10 demo11
+	rm -rf libsocket.so libsocket.a demo01 demo02 demo03 demo04 demo05 demo06 demo07 demo08 demo09 demo10 demo11 demo12 demo13
 
 

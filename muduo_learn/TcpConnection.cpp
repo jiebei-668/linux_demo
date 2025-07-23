@@ -15,6 +15,7 @@ TcpConnection::TcpConnection(Eventloop *loop, int fd)
 }
 TcpConnection::~TcpConnection()
 {
+	m_channel.~Channel();
 }
 void TcpConnection::handleRead()
 {
@@ -27,7 +28,9 @@ void TcpConnection::handleRead()
 	}
 	else if(rsize < 0)
 	{
-		// error handle
+		// 对端出错就关闭本端socket并退出
+		// fixme 应该指定error的回调
+		handleClose();
 	}
 	else 
 	{
@@ -40,13 +43,15 @@ void TcpConnection::handleRead()
 void TcpConnection::handleClose()
 {
 	assert(m_CloseCallback != nullptr);
-	m_CloseCallback(m_fd);
+	printf("TcpConnection::handleClose connection close...\n");
 	m_channel.remove();
+	m_CloseCallback(this);
 }
 void TcpConnection::init()
 {
 	assert(m_ConnectionCallback);
 	m_channel.enableReading();
 	m_channel.registerToLoop();
+	// fixme: 这个连接回调在任何线程都可以运行
 	m_ConnectionCallback(m_fd);
 }

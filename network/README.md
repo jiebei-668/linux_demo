@@ -75,3 +75,7 @@ Example: ./demo07 8888
 - Usage: ./demo11 port
 Example: ./demo11 8888
 
+### demo13.cpp 
+- 这是一个网络通信客户端，它连接一个服务端后不停的接收服务端的消息并显示。Ctrl-c或kill可以终止该程序
+- Usage: ./demo13 ip port
+Example: ./demo13 127.0.0.1 8888

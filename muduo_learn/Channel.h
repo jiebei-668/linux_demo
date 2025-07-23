@@ -2,6 +2,7 @@
 #define __CHANNEL__H__
 #include <functional>
 class Eventloop;
+// channel类的作用就是将事件类型和对应的处理函数绑定
 class Channel
 {
 private:
@@ -21,6 +22,10 @@ public:
 	{
 		return m_fd;
 	}
+	Eventloop *getLoop()
+	{
+		return m_loop;
+	}
 	void setRevents(int revents)
 	{
 		m_revents = revents;
@@ -33,7 +38,10 @@ public:
 	{
 		m_readCallback = cb;
 	}
+	// 对应POLLIN事件
 	void enableReading();
+	// fixme 对应什么事件？
+	// 使用pollin recv返回值是否为0来判断对端关闭，所以这个函数暂时没用
 	void enableClose();
 	int getEvent()
 	{

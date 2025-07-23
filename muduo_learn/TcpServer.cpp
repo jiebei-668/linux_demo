@@ -12,6 +12,11 @@ TcpServer::TcpServer(Eventloop *loop, const char *ip, const int port)
 }
 TcpServer::~TcpServer()
 {
+	for( auto& p: m_connectionMap)
+	{
+		m_connectionMap.erase(p.first);
+		p.first->~TcpConnection();
+	}
 }
 void TcpServer::init()
 {
@@ -25,7 +30,13 @@ void TcpServer::newConnection(int fd, struct sockaddr *client, socklen_t *len)
 	TcpConnection *tcpConnection = new TcpConnection(m_loop, fd);
 	m_connectionMap[tcpConnection] = tcpConnection;
 	tcpConnection->setConnectionCallback(m_connectionCallback);
-	tcpConnection->setCloseCallback(m_closeCallback);
+	tcpConnection->setCloseCallback(std::bind(&TcpServer::handleTcpConnectionClose, this, std::placeholders::_1));
 	tcpConnection->setMessageCallback(m_messageCallback);
 	tcpConnection->init();
+}
+void TcpServer::handleTcpConnectionClose(TcpConnection *p)
+{
+	m_connectionMap.erase(p);
+	m_closeCallback(p->getFd());
+	p->~TcpConnection();
 }
