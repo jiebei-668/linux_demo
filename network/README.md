@@ -79,3 +79,9 @@ Example: ./demo11 8888
 - 这是一个网络通信客户端，它连接一个服务端后不停的接收服务端的消息并显示。Ctrl-c或kill可以终止该程序
 - Usage: ./demo13 ip port
 Example: ./demo13 127.0.0.1 8888
+
+### demo14.cpp 
+- 这是一个使用poll的网络通信服务端程序，它接收客户端的消息并原封不动返回。使用信号2（Ctrl-c）或信号15可以终止信号。
+- 与demo07cpp的区别是本程序判断对端socket断开用的是POLLRDHUP而不是POLLIN + recv返回值为0的方法，注意使用POLLRDHUP要定义宏 _GNU_SOURCE 详见 man poll
+- Usage: ./demo14 port
+Example: ./demo14 8888

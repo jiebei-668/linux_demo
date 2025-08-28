@@ -20,6 +20,8 @@ Channel::~Channel()
 void Channel::handleEvent()
 {
 	 // channel对事件的处理由上层调用如acceptor或者coonnector
+	 printf("POLLIN=%d POLLRDHUP=%d\n", POLLIN, POLLRDHUP);
+	 
 	 if(POLLIN & m_revents)
 	 {
 	 	assert(m_readCallback);
