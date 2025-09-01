@@ -58,11 +58,11 @@ void Acceptor::handleRead()
 		{
 			m_newConnectionCallback(connfd, (struct sockaddr *)&client, &len);
 		}
-		else
-		{
-			printf("Acceptor::handler m_newConnectionCallback is null...\n");
-			::close(connfd);
-		}
+		// else
+		// {
+		// 	printf("Acceptor::handler m_newConnectionCallback is null...\n");
+		// 	::close(connfd);
+		// }
 	}
 	// 错误处理，打印错误信息，然后忽略该错误，继续执行
 	else

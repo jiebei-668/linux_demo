@@ -12,10 +12,11 @@ TcpConnection::TcpConnection(Eventloop *loop, int fd)
 {
 	m_channel.setReadCallback(std::bind(&TcpConnection::handleRead, this));
 	m_channel.setCloseCallback(std::bind(&TcpConnection::handleClose, this));
+	m_channel.setErrorCallback(std::bind(&TcpConnection::handleError, this));
 }
 TcpConnection::~TcpConnection()
 {
-	m_channel.~Channel();
+	// m_channel.~Channel();
 }
 void TcpConnection::handleRead()
 {
@@ -26,16 +27,15 @@ void TcpConnection::handleRead()
 	{
 		m_MessageCallback(m_fd, m_receiveBuf, rsize);
 	}
-	else if(rsize < 0)
+	else if(rsize == 0)
 	{
 		// 对端出错就关闭本端socket并退出
-		// fixme 应该指定error的回调
 		handleClose();
 	}
 	else 
 	{
 		// close handle
-		handleClose();
+		handleError();
 
 	}
 
@@ -46,6 +46,13 @@ void TcpConnection::handleClose()
 	printf("TcpConnection::handleClose connection close...\n");
 	m_channel.remove();
 	m_CloseCallback(this);
+}
+void TcpConnection::handleError()
+{
+	assert(m_ErrorCallback != nullptr);
+	printf("TcpConnection::handleError connection close...\n");
+	m_channel.remove();
+	m_ErrorCallback(this);
 }
 void TcpConnection::init()
 {

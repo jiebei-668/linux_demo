@@ -19,18 +19,26 @@ Channel::~Channel()
 }
 void Channel::handleEvent()
 {
-	 // channel对事件的处理由上层调用如acceptor或者coonnector
-	 printf("POLLIN=%d POLLRDHUP=%d\n", POLLIN, POLLRDHUP);
-	 
-	 if(POLLIN & m_revents)
+	// socket编程中，走不到这个条件，当对端处于发送fin又收到ack处于FIN_WAIT_2时，本端有recv返回值为0,就会关闭socket，不会等四次握手后受到pollhup
+	if(m_revents & POLLHUP && !(m_revents & POLLIN))
+	{
+		assert(m_closeCallback);
+		m_closeCallback();
+		return;
+	}
+	// 编程得当的话pollnval是不会出现的
+	if(m_revents & (POLLERR | POLLNVAL))
+	{
+		assert(m_errorCallback);
+		m_errorCallback();
+		return;
+	}
+	 if((POLLIN | POLLPRI) & m_revents)
 	 {
 	 	assert(m_readCallback);
+		// NOTE 上层如tcpconnection指定channel的readcallback时应该特别处理recv返回值为0的情况！
 	 	m_readCallback();
-	 }
-	 if(POLLRDHUP & m_revents || POLLHUP & m_revents)
-	 {
-	 	assert(m_closeCallback);
-	 	m_closeCallback();
+		return;
 	 }
 }
 void Channel::remove()
@@ -44,11 +52,5 @@ void Channel::registerToLoop()
 void Channel::enableReading()
 {
 	m_event |= POLLIN;
-	registerToLoop();
-}
-void Channel::enableClose()
-{
-	m_event |= POLLRDHUP;
-	m_event |= POLLHUP;
 	registerToLoop();
 }

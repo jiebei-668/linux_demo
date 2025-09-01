@@ -9,6 +9,7 @@ private:
 	int m_fd;
 	std::function<void()> m_closeCallback;		// 关闭事件的回调 
 	std::function<void()> m_readCallback;		// 读事件的回调
+	std::function<void()> m_errorCallback;       // 错误事件的回调 包括POLLERR 和 POLLNVAL
 	int m_revents;          // 返回的事件
 	int m_event;			// 关注的事件  
 	Eventloop *m_loop;		// 管理本channel的loop指针	
@@ -43,11 +44,12 @@ public:
 	{
 		m_readCallback = cb;
 	}
+	void setErrorCallback(std::function<void()> cb)
+	{
+		m_errorCallback = cb;
+	}
 	// 对应POLLIN事件
 	void enableReading();
-	// fixme 对应什么事件？
-	// 使用pollin recv返回值是否为0来判断对端关闭，所以这个函数暂时没用
-	void enableClose();
 	int getEvent()
 	{
 		return m_event;
